@@ -1,4 +1,4 @@
-function UpdateFormAction() {
+function InsertName() {
     // Get the input element by its id
     var nameInput = document.getElementById("name");
   
@@ -14,26 +14,25 @@ function UpdateFormAction() {
   }
 
 
-/*
-var nameContainer = document.querySelector(".current-name")
+function DeleteNames () {
+    var xhr = new XMLHttpRequest();
 
-async function GetCounter() {
-        let response = await fetch("https://cors-anywhere.herokuapp.com/https://countertrigger.azurewebsites.net/api/http_trigger")
-        let counter = await response.json()
-        return counter;
-    }
+    // Define the request method, URL, and set asynchronous to true
+    xhr.open("GET", "https://goformtrigger.azurewebsites.net/api/FormTrigger?delete=yes", true);
 
-nameContainer.innerHTML = "Ye"
+    xhr.onload = function () {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        // Request was successful
+        console.log("Names deleted successfully.");
+        window.location.href="https://goformtrigger.azurewebsites.net/api/FormTrigger?delete=yes"
+      } else {
+        // Request encountered an error
+        console.error("Error deleting names:", xhr.status, xhr.statusText);
+      }
+    };
 
-GetCounter().then(counter => nameContainer.innerHTML = "Ye")
-    
-const check = (e) => {
-    const form = new FormData(e.target)
-    const name = form.get("fname")
-    console.log(name)
-    console.log("----------------------------------")
-
-    return fetch("https://goformtrigger.azurewebsites.net/api/FormTrigger?name= " + name)
-        .then(data => nameContainer.innerHTML = "Ye")
+    // Send the request with an empty body
+    xhr.send();
 }
-*/
+
+
