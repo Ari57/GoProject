@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,14 +19,31 @@ const (
 	collectionName = "GolangName"
 )
 
+type NameResult struct {
+	Name string `json:"name"`
+}
+
 func nameHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name") // gets name value e.g. url?name=...
-	if name == "" {
-		w.Write([]byte("Hi"))
-	} else {
-		w.Write([]byte("Hey " + name))
+	delete := r.URL.Query().Get("delete")
 
+	if delete == "yes" {
+		message := deleteDocuments() // deletes all name records
+		w.Write([]byte(message))
+	}
+
+	if name == "" && delete != "yes" {
+		w.Write([]byte("Hi"))
+	}
+
+	if name != "" {
+		w.Write([]byte("Hey " + name + "\n"))
 		insertName(name)
+
+		queryData := queryName()
+		w.Write([]byte("\n"))
+		w.Write([]byte("Current list of names stored in the database: \n"))
+		w.Write([]byte(queryData + "\n"))
 	}
 }
 
@@ -83,34 +100,46 @@ func insertName(name string) {
 	basicErrorChecker(err)
 }
 
-func queryName(name string) {
+func queryName() string {
 	collection := getCollection()
-	filter := bson.M{"name": name}
-	cursor, err := collection.Find(context.TODO(), filter)
+	filter := bson.M{"name": bson.M{"$ne": ""}} // where name is not empty
 
+	cursor, err := collection.Find(context.Background(), filter)
 	basicErrorChecker(err)
 
 	// defer cursor.Close(context.TODO())
-	var QueryResult []bson.M
+	var names []string
 
 	// Iterate through the cursor and decode the results
-	for cursor.Next(context.TODO()) {
-		var result bson.M
+	for cursor.Next(context.Background()) {
+		var result NameResult
 		if err := cursor.Decode(&result); err != nil {
 			panic(err)
 		}
-		QueryResult = append(QueryResult, result)
+		names = append(names, result.Name)
 	}
 
-	// Marshal and print the results as JSON
-	jsonData, err := json.MarshalIndent(QueryResult, "", "    ")
-
-	basicErrorChecker(err)
-	fmt.Printf("%s\n", jsonData)
+	resultString := strings.Join(names, "\n")
+	return resultString
 }
 
 func basicErrorChecker(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func deleteDocuments() string {
+	collection := getCollection()
+	filter := bson.M{"name": bson.M{"$ne": ""}} // where name not empty
+
+	result, err := collection.DeleteMany(context.Background(), filter)
+	_ = result
+
+	if err != nil {
+		log.Fatalf("Error deleting documents: %v", err)
+	}
+
+	message := "Deleted all name records"
+	return message
 }
